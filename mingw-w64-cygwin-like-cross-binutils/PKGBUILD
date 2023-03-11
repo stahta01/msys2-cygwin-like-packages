@@ -23,8 +23,7 @@ source=(https://ftp.gnu.org/gnu/binutils/binutils-${pkgver}.tar.xz{,.sig}
         010-bfd-Increase-_bfd_coff_max_nscns-to-65279.patch
         020-binutils_2.31_mkdtemp_impl.patch
         100-binutils-2.37-msys2.patch
-        110-binutils-mingw-or-USE_MINGW_ANSI_STDIO.patch
-        115-binutils-mingw-gnu-print.patch
+        110-binutils-2.40-mingw-gnu-print.patch
         120-windres-handle-spaces.patch)
 sha256sums=('0f8a4c272d7f17f369ded10a4aca28b8e304828e95526da482b0ccc4dfc9d8e1'
             'SKIP'
@@ -62,7 +61,7 @@ prepare() {
 # 100-binutils-2.37-msys2.patch rewrite needed for 3.40
 
   apply_patch_with_msg \
-    115-binutils-mingw-gnu-print.patch \
+    110-binutils-2.40-mingw-gnu-print.patch \
     120-windres-handle-spaces.patch
 
   #do not install libiberty
