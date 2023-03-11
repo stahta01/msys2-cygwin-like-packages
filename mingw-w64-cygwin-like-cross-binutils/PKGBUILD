@@ -1,0 +1,136 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Alexey Pavlov <alexpux@gmail.com>
+# Contributor: Martell Malone <martellmalone@gmail.com>
+
+_realname=binutils
+_mingw_cygwin_suff=mingw-w64-cygwin-like-cross
+_mingw_suff=mingw-w64-cross
+pkgname=("${_mingw_cygwin_suff}-${_realname}")
+pkgver=2.40
+pkgrel=1
+pkgdesc="A set of programs to assemble and manipulate binary and object files"
+arch=('i686' 'x86_64')
+url="https://www.gnu.org/software/binutils/"
+license=('GPL')
+groups=("${_mingw_cygwin_suff}-toolchain" "${_mingw_cygwin_suff}")
+depends=("libiconv" "zlib")
+checkdepends=('dejagnu' 'bc')
+makedepends=("libiconv" "zlib" 'autotools' 'gcc')
+options=('staticlibs' '!distcc' '!ccache' '!buildflags')
+source=(https://ftp.gnu.org/gnu/binutils/binutils-${pkgver}.tar.xz{,.sig}
+        001-enable-gold-on.mingw32.patch
+        002-check-for-unusual-file-harder.patch
+        010-bfd-Increase-_bfd_coff_max_nscns-to-65279.patch
+        020-binutils_2.31_mkdtemp_impl.patch
+        100-binutils-2.37-msys2.patch
+        110-binutils-mingw-or-USE_MINGW_ANSI_STDIO.patch
+        115-binutils-mingw-gnu-print.patch
+        120-windres-handle-spaces.patch)
+sha256sums=('0f8a4c272d7f17f369ded10a4aca28b8e304828e95526da482b0ccc4dfc9d8e1'
+            'SKIP'
+            '93296b909e1a4f9d8a4bbe2437aafa17ca565ef6642a9812b0360c05be228c9d'
+            '2c99345fc575c3a060d6677537f636c6c4154fac0fde508070f3b6296c1060d4'
+            '4e8ac055df61b1b5d6ae29dc87e1154737c2e87c7b244b44866702cabf1a5d18'
+            '34ba6c001ff7f95ae1da0619c73130112b76d0d2a31bb8a00602eb22f1f84cb8'
+            '4c5b251beb036814992bc1b6538b5ff49259e073b7cc982e036c76050a866a51'
+            '04d49ad3350ce3f584252e937089c97f35f395ef261b77212641f7c1db554238'
+            '565e869c37f99110aa1014cb0c3767fceb56b05c67b50d0a39f85ef009017a20'
+            '86ae90d997e986a54aaebb5251f3a71800b0c5c3f5b57b9094a42995e9f5c478')
+validpgpkeys=('EAF1C276A747E9ED86210CBAC3126D3B4AE55E93'
+              '3A24BC1E8FB409FA9F14371813FCEF89DD9E3C4F')
+
+_targets="i686-w64-mingw32 x86_64-w64-mingw32" # armv7-w64-mingw32
+
+# Helper macros to help make tasks easier #
+apply_patch_with_msg() {
+  for _patch in "$@"
+  do
+    msg2 "Applying ${_patch}"
+    patch -Nbp1 -i "${srcdir}/${_patch}"
+  done
+}
+
+prepare() {
+  cd ${srcdir}/binutils-${pkgver}
+
+  apply_patch_with_msg \
+    001-enable-gold-on.mingw32.patch \
+    002-check-for-unusual-file-harder.patch \
+    010-bfd-Increase-_bfd_coff_max_nscns-to-65279.patch \
+    020-binutils_2.31_mkdtemp_impl.patch
+
+# 100-binutils-2.37-msys2.patch rewrite needed for 3.40
+
+  apply_patch_with_msg \
+    115-binutils-mingw-gnu-print.patch \
+    120-windres-handle-spaces.patch
+
+  #do not install libiberty
+  #sed -i 's/install_to_$(INSTALL_DEST) //' libiberty/Makefile.in
+  # hack! - libiberty configure tests for header files using "$CPP $CPPFLAGS"
+  sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" libiberty/configure
+}
+
+build() {
+  for _target in ${_targets}; do
+    mkdir -p ${srcdir}/binutils-build-${_target} && cd ${srcdir}/binutils-build-${_target}
+
+    if [ "${_target}" != "armv7-w64-mingw32" ]; then
+      local _conf='--enable-lto'
+    else
+      local _conf=''
+    fi
+
+    if [ "${_target}" = "x86_64-w64-mingw32" ]; then
+      _conf+=' --enable-64-bit-bfd'
+    fi
+
+    ${srcdir}/binutils-${pkgver}/configure \
+      --build=${CHOST} \
+      --host=${CHOST} \
+      --target=${_target} \
+      --prefix=/opt \
+      --disable-werror \
+      --with-libiconv-prefix=/usr \
+      --disable-gdb \
+      --disable-libdecnumber \
+      --disable-readline \
+      --disable-sim \
+      --enable-64-bit-bfd \
+      --enable-targets=x86_64-pep \
+      --with-system-zlib \
+      --with-gcc-major-version-only \
+      $_conf
+
+
+    make
+  done
+}
+
+check() {
+  for _target in ${_targets}; do
+    cd ${srcdir}/binutils-build-${_target}
+
+    # unset LDFLAGS as testsuite makes assumptions about which ones are active
+    # do not abort on errors - manually check log files
+    make LDFLAGS="" -k check || true
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    cd ${srcdir}/binutils-build-${_target}
+    make DESTDIR=${pkgdir} install
+
+    # Remove unwanted files
+    #rm ${destdir}/usr/share/info/{configure,standards}.info
+    # conflicts with native binutils
+    rm -fr ${pkgdir}/usr/lib/ ${pkgdir}/usr/share/{info,locale}/
+    rm -rf ${pkgdir}/usr/share/man/man1/gdb*
+    rm -rf ${pkgdir}/usr/share/man/man5/gdb*
+
+    # Add some useful headers
+    #install -m644 ${srcdir}/binutils-${pkgver}/include/libiberty.h ${pkgdir}/opt/include
+    #install -m644 ${srcdir}/binutils-${pkgver}/include/demangle.h ${pkgdir}/opt/include
+  done
+}
