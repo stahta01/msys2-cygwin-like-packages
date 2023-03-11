@@ -1,0 +1,155 @@
+# Contributor: Alexey Pavlov <alexpux@gmail.com>
+# Contributor: Martell Malone <martellmalone@gmail.com>
+
+_realname=binutils
+_cygwinlike_suff=mingw-w64-cygwin-like-cross
+_targetpkgs=("${_cygwinlike_suff}-ucrt64-${_realname}" "${_cygwinlike_suff}-mingw32-${_realname}" "${_cygwinlike_suff}-mingw64-${_realname}")
+pkgname=("${_cygwinlike_suff}-${_realname}" "${_cygwinlike_suff}-common-${_realname}" "${_targetpkgs[@]}")
+pkgver=2.43.1
+pkgrel=2
+pkgdesc="A set of programs to assemble and manipulate binary and object files"
+arch=('i686' 'x86_64')
+url="https://www.gnu.org/software/binutils/"
+msys2_references=(
+  "cpe: cpe:/a:gnu:binutils"
+)
+license=('GPL')
+groups=("${_cygwinlike_suff}-toolchain" "${_cygwinlike_suff}")
+depends=("libiconv" "zlib" "libzstd" "libintl")
+checkdepends=('dejagnu' 'bc')
+makedepends=("libiconv-devel" "zlib-devel" 'autotools' 'gcc' 'libzstd-devel' 'gettext-devel')
+options=('staticlibs' '!distcc' '!ccache' '!buildflags')
+source=(https://ftp.gnu.org/gnu/binutils/binutils-${pkgver}.tar.xz{,.sig}
+        002-check-for-unusual-file-harder.patch
+        010-bfd-Increase-_bfd_coff_max_nscns-to-65279.patch)
+sha256sums=('13f74202a3c4c51118b797a39ea4200d3f6cfbe224da6d1d95bb938480132dfd'
+            'SKIP'
+            '2c99345fc575c3a060d6677537f636c6c4154fac0fde508070f3b6296c1060d4'
+            '4e8ac055df61b1b5d6ae29dc87e1154737c2e87c7b244b44866702cabf1a5d18')
+validpgpkeys=('EAF1C276A747E9ED86210CBAC3126D3B4AE55E93'
+              '3A24BC1E8FB409FA9F14371813FCEF89DD9E3C4F')
+msys2_references=(
+  'archlinux: binutils'
+)
+
+apply_patch_with_msg() {
+  for _patch in "$@"
+  do
+    msg2 "Applying ${_patch}"
+    patch -p1 -i "${srcdir}/${_patch}"
+  done
+}
+
+prepare() {
+  cd ${srcdir}/binutils-${pkgver}
+
+  apply_patch_with_msg \
+    002-check-for-unusual-file-harder.patch \
+    010-bfd-Increase-_bfd_coff_max_nscns-to-65279.patch
+}
+
+_build() {
+  _target=$1
+  mkdir -p ${srcdir}/binutils-build-${_target} && cd ${srcdir}/binutils-build-${_target}
+
+  local _conf='--enable-lto'
+
+  if [ "${_target}" != "i686-w64-mingw32" ]; then
+    _conf+=' --enable-64-bit-bfd'
+  fi
+
+  MSYSTEM=CYGWIN
+  local CYGWIN_CHOST="${CHOST/-msys/-cygwin}"
+  ${srcdir}/binutils-${pkgver}/configure \
+    --build=${CYGWIN_CHOST} \
+    --host=${CYGWIN_CHOST} \
+    --target=${_target} \
+    --disable-dependency-tracking \
+    --prefix=${MSYSTEM_PREFIX} \
+    --exec-prefix=${MSYSTEM_PREFIX} \
+    --with-sysroot=${MSYSTEM_PREFIX}/${_target}/sys-root \
+    --with-build-sysroot=${MSYSTEM_PREFIX}/${_target}/sys-root \
+    --disable-werror \
+    --with-libiconv-prefix=/usr \
+    --with-system-zlib \
+    $_conf
+
+  make
+}
+
+_check() {
+  _target=$1
+  cd ${srcdir}/binutils-build-${_target}
+
+  # unset LDFLAGS as testsuite makes assumptions about which ones are active
+  # do not abort on errors - manually check log files
+  make LDFLAGS="" -k check || true
+}
+
+_package() {
+  _target=$1
+  cd ${srcdir}/binutils-build-${_target}
+  make DESTDIR=${pkgdir} install
+  rm -rf "${pkgdir}${MSYSTEM_PREFIX}/share/info"
+  rm -rf "${pkgdir}${MSYSTEM_PREFIX}/share/locale"
+  rm -rf "${pkgdir}${MSYSTEM_PREFIX}/lib"
+}
+
+build() {
+  for _pkg in "${_targetpkgs[@]}"; do
+    case "$_pkg" in
+      "${_cygwinlike_suff}-ucrt64-${_realname}") _build "x86_64-w64-mingw32ucrt" ;;
+      "${_cygwinlike_suff}-mingw32-${_realname}") _build "i686-w64-mingw32" ;;
+      "${_cygwinlike_suff}-mingw64-${_realname}") _build "x86_64-w64-mingw32" ;;
+      "${_cygwinlike_suff}-mingwarm64-${_realname}") _build "aarch64-w64-mingw32" ;;
+    esac
+  done
+}
+
+check() {
+  for _pkg in "${_targetpkgs[@]}"; do
+    case "$_pkg" in
+      "${_cygwinlike_suff}-ucrt64-${_realname}") _check "x86_64-w64-mingw32ucrt" ;;
+      "${_cygwinlike_suff}-mingw32-${_realname}") _check "i686-w64-mingw32" ;;
+      "${_cygwinlike_suff}-mingw64-${_realname}") _check "x86_64-w64-mingw32" ;;
+      "${_cygwinlike_suff}-mingwarm64-${_realname}") _check "aarch64-w64-mingw32" ;;
+    esac
+  done
+}
+
+package_mingw-w64-cygwin-like-cross-binutils() {
+  pkgdesc+=" (meta package, for backward compatibility)"
+  depends=("${_targetpkgs[@]}")
+}
+
+package_mingw-w64-cygwin-like-cross-common-binutils() {
+  pkgdesc+=" (common files for all targets)"
+  conflicts=("${_cygwinlike_suff}-${_realname}<=2.43-1")
+
+  _target="x86_64-w64-mingw32"
+  cd ${srcdir}/binutils-build-${_target}
+  make DESTDIR="${srcdir}/temp" install
+
+  mkdir -p "${pkgdir}${MSYSTEM_PREFIX}/share"
+  #mv "${srcdir}/temp${MSYSTEM_PREFIX}/share/locale" "${pkgdir}${MSYSTEM_PREFIX}/share/locale"
+  #mv "${srcdir}/temp${MSYSTEM_PREFIX}/share/info" "${pkgdir}${MSYSTEM_PREFIX}/share/info"
+  mv "${srcdir}/temp${MSYSTEM_PREFIX}/lib" "${pkgdir}${MSYSTEM_PREFIX}/lib"
+}
+
+package_mingw-w64-cygwin-like-cross-ucrt64-binutils() {
+  conflicts=("${_cygwinlike_suff}-${_realname}<=2.43-1")
+  depends+=("${_cygwinlike_suff}-common-${_realname}")
+  _package "x86_64-w64-mingw32ucrt"
+}
+
+package_mingw-w64-cygwin-like-cross-mingw32-binutils() {
+  conflicts=("${_cygwinlike_suff}-${_realname}<=2.43-1")
+  depends+=("${_cygwinlike_suff}-common-${_realname}")
+  _package "i686-w64-mingw32"
+}
+
+package_mingw-w64-cygwin-like-cross-mingw64-binutils() {
+  conflicts=("${_cygwinlike_suff}-${_realname}<=2.43-1")
+  depends+=("${_cygwinlike_suff}-common-${_realname}")
+  _package "x86_64-w64-mingw32"
+}
