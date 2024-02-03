@@ -1,0 +1,377 @@
+# Maintainer: Alexey Pavlov <alexpux@gmail.com>
+# Contributor: Martell Malone <martellmalone@gmail.com>
+# Contributor: Ray Donnelly <mingw.android@gmail.com>
+
+# toolchain build order: win32-api-headers->msys2-runtime->binutils->gcc->binutils->msys2-runtime
+# NOTE: libtool requires rebuilt with each new gcc version
+
+pkgbase=gcc11
+pkgname=('gcc' 'gcc-libs' 'gcc-fortran')
+pkgver=11.4.1+d20240205.r2.c0.ge6a94f135c13
+pkgrel=1
+_sourcedir=gcc-git
+_git_base_commit='e6a94f135c13271bcfe9198c841aeeffc64ee78a'
+pkgdesc="The GNU Compiler Collection"
+arch=('i686' 'x86_64')
+license=('GPL' 'LGPL' 'FDL' 'custom')
+url="https://gcc.gnu.org/"
+makedepends=('binutils' 'mpc-devel' 'gmp-devel'
+             'mpfr-devel' 'isl-devel' 'zlib-devel'
+             'windows-default-manifest' 'autotools' 'gcc' 'gperf')
+STRIP_OPTION="strip"
+#STRIP_OPTION="!strip"
+#DEBUG_OPTION="debug"
+DEBUG_OPTION="!debug"
+options=('!emptydirs' "$STRIP_OPTION" "$DEBUG_OPTION")
+source=(${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#commit=$_git_base_commit"
+        0001-Cygwin-use-SysV-ABI-on-x86_64.patch
+        0002-Cygwin-add-dummy-pthread-tsaware-and-large-address-a.patch
+        0003-Cygwin-handle-dllimport-properly-in-medium-model-V2.patch
+        0004-Cygwin-MinGW-skip-test.patch
+        0005-Cygwin-define-RTS_CONTROL_ENABLE-and-DTR_CONTROL_ENA.patch
+        0006-Cygwin-fix-some-implicit-declaration-warnings-and-re.patch
+        0007-Cygwin-__cxa-atexit.patch
+        0008-Cygwin-libgomp-soname.patch
+        0009-Cygwin-g-time.patch
+        0010-Cygwin-newlib-ftm.patch
+        0011-Cygwin-define-STD_UNIX.patch
+        0101-Cygwin-enable-libgccjit-not-just-for-MingW.patch
+        0102-Cygwin-testsuite-fixes-for-libgccjit.patch
+        0950-11.4.0-configure-msys2.patch
+        0951-11.2.0-msys2-spec.patch
+        0953-11.2.0-testsuite-msys2.patch)
+sha256sums=('SKIP'
+            'b6b141864e1ad82779e809608c6eed61addb09c6ff7249d1a4a5db807cc5b9be'
+            'cfc44c9747980ef8a5dc87a654340ccf25cf4ebb4103e544fb4fc1e5a26e6120'
+            '9475f8b4b92d5fe2af9538c2b036a5d7528b23ae07e4c684cf84be2e7f8482cf'
+            '7bb81430f4f4eafa8d85bbb06ac8ec7d8d4edd937a985fa35ad05b1ff753d79a'
+            '838ea22edd69c86dc3e511fb162201633ac742a25f365c42be522fca57461541'
+            '6df1928b931de247022dd60d26b42dfb3baef3307243c657bec5f0f6c35f3074'
+            'a477f0acc271a05a8acf2293de38d7509672012c19b95c07d5b093bf711863a9'
+            '6a7a8425db0f3001c587f4f7722a6c634ef29a51fdf1990aed1c2afe253db812'
+            '89c239285de06224a6bf056a620b0a0defae788d194893cd39eadc06ee171e62'
+            '7839d88eb3cea821f51b9778c62e63bf5cc831c810ab2cc12f15e7a1633c3cb3'
+            '2269e9c2438e21b082ca0d136519a08a0853b896dd559a3946bd9b9e6b94fc5e'
+            'cfcd07c86ac35aaa41c6f60e2089a8ee9552f9e705de3aba3c7cfa7223f66cb0'
+            '84efaa23be80c0ccf5e0f5da0a34b17c26948bfb7c2cc89b17b455df6df5c1e4'
+            'bbc2f52cb21093e33c10ad9ad17afd1830955b9d729342da35c27c3590852908'
+            'c949d1a10231c5f9cecf3f09319afb290f66fe012e545fd70cd7bdfadddfcf56'
+            '593f41e1f1265171ecc5377226dc76a3a4d92d7c3cc4f0b0afe6c4a6578cc5e3')
+
+# Helper macros to help make tasks easier #
+apply_patch_with_msg() {
+  for _fname in "$@"
+  do
+    msg2 "Applying ${_fname}"
+    patch -Nbp1 -i "${srcdir}"/${_fname}
+  done
+}
+
+del_file_exists() {
+  for _fname in "$@"
+  do
+    if [ -f $_fname ] || [ -d $_fname ]; then
+      rm -rf $_fname
+    fi
+  done
+}
+# =========================================== #
+
+pkgver() {
+  cd ${srcdir}/${_sourcedir}
+  local _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
+  local _gcc_date=$(head -n 34 gcc/DATESTAMP | sed -e 's/.* //' | tr -d '"\n')
+  printf "%s+d%s.r%s.c%s.g%s" "$_gcc_version" "$_gcc_date" \
+    $(git rev-list --count $(git log -1 --format=%H -- gcc/DATESTAMP)..${_git_base_commit}) \
+    $(git rev-list --count ${_git_base_commit}..HEAD) \
+    $(git rev-parse --short=12 ${_git_base_commit})
+}
+
+prepare() {
+  cd ${srcdir}/${_sourcedir}
+
+  GIT_AM="git am --committer-date-is-author-date"
+
+  msg "Before git reset"
+  time git reset --hard
+  msg "Before git restore"
+  time git restore .
+  msg "Before git clean"
+  time git clean -fdx
+  msg "Before git am abort"
+  time git am --abort || true
+
+  del_file_exists intl/canonicalize.c intl/canonicalize.h \
+    intl/relocatex.c intl/relocatex.h gcc/config/i386/mingw32.h.sedbak
+
+  # Remove files created by patches
+  rm -f config/mt-cygwin \
+        gcc/ada/system-cygwin-x86_64.ads \
+        libgomp/config/cygwin/plugin-suffix.h \
+        libgcc/config/i386/t-msys \
+        gcc/config/i386/msys.h \
+        gcc/config/i386/msys-w64.h \
+        gcc/config/i386/t-msys-w64 > /dev/null 2>&1 | true
+
+  # Cygwin patches
+  apply_patch_with_msg \
+    0001-Cygwin-use-SysV-ABI-on-x86_64.patch \
+    0002-Cygwin-add-dummy-pthread-tsaware-and-large-address-a.patch \
+    0003-Cygwin-handle-dllimport-properly-in-medium-model-V2.patch \
+    0004-Cygwin-MinGW-skip-test.patch \
+    0005-Cygwin-define-RTS_CONTROL_ENABLE-and-DTR_CONTROL_ENA.patch \
+    0007-Cygwin-__cxa-atexit.patch \
+    0008-Cygwin-libgomp-soname.patch \
+    0009-Cygwin-g-time.patch \
+    0010-Cygwin-newlib-ftm.patch \
+    0011-Cygwin-define-STD_UNIX.patch \
+    0101-Cygwin-enable-libgccjit-not-just-for-MingW.patch \
+    0102-Cygwin-testsuite-fixes-for-libgccjit.patch
+
+  # MSYS2 Patches
+  apply_patch_with_msg \
+    0950-11.4.0-configure-msys2.patch \
+    0951-11.2.0-msys2-spec.patch \
+    0953-11.2.0-testsuite-msys2.patch
+
+  # Do not run fixincludes
+  #sed -i 's@\./fixinc\.sh@-c true@' gcc/Makefile.in
+  git restore gcc/BASE-VER
+  # hack! - some configure tests for header files using "$CPP $CPPFLAGS"
+  sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" {libiberty,gcc}/configure
+
+  [[ -d ${srcdir}/build-$(arch) ]] && rm -rf ${srcdir}/build-$(arch)
+  mkdir ${srcdir}/build-$(arch)
+}
+
+build() {
+  cd ${srcdir}/build-$(arch)
+
+  case ${CARCH} in
+    i686)
+      _arch=i686
+      _arch_conf="--disable-sjlj-exceptions"
+    ;;
+    x86_64)
+      _arch=x86-64
+      _arch_conf=
+    ;;
+  esac
+
+  # libgcc is built with -g0, but INHIBIT_LIBC_CFLAGS can
+  # be used to undo that.
+  if check_option "debug" "y"; then
+    export INHIBIT_LIBC_CFLAGS="-g2"
+  fi
+
+  # using -pipe causes spurious test-suite failures
+  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=48565
+  CFLAGS=${CFLAGS/-pipe/}
+  CXXFLAGS=${CXXFLAGS/-pipe/}
+
+  # use built-in SSP with Cygwin 2.10
+  # FIXME: --disable-libssp should suffice in GCC 8
+  export gcc_cv_libc_provides_ssp=yes
+  # libssp: conflicts with builtin SSP
+
+  export lt_cv_deplibs_check_method='pass_all'
+
+  ${srcdir}/${_sourcedir}/configure \
+    --build=${CHOST} \
+    --prefix=/usr \
+    --libexecdir=/usr/lib \
+    --enable-bootstrap \
+    --enable-shared --enable-shared-libgcc --enable-static \
+    --enable-version-specific-runtime-libs \
+    --with-arch=${_arch} \
+    --with-tune=generic \
+    --disable-multilib \
+    ${_arch_conf} \
+    --enable-__cxa_atexit \
+    --with-dwarf2 \
+    --enable-languages=c,c++,fortran,lto \
+    --enable-graphite \
+    --enable-threads=posix \
+    --enable-libatomic \
+    --enable-libgomp \
+    --disable-libitm \
+    --enable-libquadmath \
+    --enable-libquadmath-support \
+    --disable-libssp \
+    --disable-win32-registry \
+    --disable-symvers \
+    --with-gnu-ld \
+    --with-gnu-as \
+    --disable-isl-version-check \
+    --enable-checking=release \
+    --without-libiconv-prefix \
+    --without-libintl-prefix \
+    --with-system-zlib \
+    --enable-linker-build-id \
+    --with-default-libstdcxx-abi=gcc4-compatible \
+    --enable-libstdcxx-filesystem-ts
+
+  make
+
+  # make documentation
+  #cd $CHOST/libstdc++-v3
+  #make doc-man-doxygen
+}
+
+#check() {
+#  cd ${srcdir}/build-$(arch)
+
+#  # do not abort on error as some are "expected"
+#  make -k check || true
+#  ${srcdir}/${_sourcedir}/contrib/test_summary
+#}
+
+package_gcc-libs()
+{
+  pkgdesc="Runtime libraries shipped by GCC"
+
+  cd ${srcdir}/build-$(arch)
+  make -j1 -C $CHOST/libgcc DESTDIR=${pkgdir} install-shared
+  for lib in libgomp libstdc++-v3/src; do
+    make -j1 -C $CHOST/$lib DESTDIR=${pkgdir} install-toolexeclibLTLIBRARIES
+  done
+
+  make -j1 -C $CHOST/libstdc++-v3/po DESTDIR=${pkgdir} install
+  make -j1 -C $CHOST/libgomp DESTDIR=${pkgdir} install-info
+  make -j1 -C $CHOST/libquadmath DESTDIR=${pkgdir} install-info
+
+  make -j1 DESTDIR=${pkgdir} install-target-libquadmath
+  make -j1 DESTDIR=${pkgdir} install-target-libgfortran
+  #make -j1 DESTDIR=${pkgdir} install-target-libssp
+  make -j1 DESTDIR=${pkgdir} install-target-libatomic
+  #make -j1 DESTDIR=${pkgdir} install-target-libcilkrts
+  make -j1 DESTDIR=${pkgdir} install-target-libvtv
+
+  rm -f ${pkgdir}/*.dll
+  rm -rf ${pkgdir}/usr/lib/
+  rm -rf ${pkgdir}/usr/share/gcc-${pkgver%%+*}
+
+  # remove static libraries
+  #find ${pkgdir} -name *.a -delete
+
+  # Install Runtime Library Exception
+  install -Dm644 ${srcdir}/${_sourcedir}/COPYING.RUNTIME \
+    ${pkgdir}/usr/share/licenses/gcc-libs/RUNTIME.LIBRARY.EXCEPTION
+}
+
+package_gcc()
+{
+  pkgdesc="The GNU Compiler Collection - C and C++ frontends"
+  depends=("gcc-libs=${pkgver}-${pkgrel}" 'binutils' 'gmp' 'isl' 'mpc' 'mpfr' 'msys2-runtime-devel' 'msys2-w32api-headers' 'msys2-w32api-runtime' 'windows-default-manifest')
+  options=('staticlibs' "$STRIP_OPTION" "$DEBUG_OPTION")
+  provides=('msys2-devel')
+
+  cd ${srcdir}/build-$(arch)
+
+  if check_option "strip" "n"; then
+    export STRIP=true
+  fi
+
+  make -j1 DESTDIR=${pkgdir} install
+  if [ "$CARCH" = "x86_64" ]
+  then
+    mv ${pkgdir}/usr/lib/gcc/${CHOST}/lib/libgcc_s.dll.a ${pkgdir}/usr/lib/gcc/${CHOST}/${pkgver%%+*}/
+    rm -rf ${pkgdir}/usr/lib/gcc/${CHOST}/lib
+  fi
+  # install -d ${pkgdir}/usr/share/gdb/auto-load/usr/lib
+  # mv $pkg{pkgdir}dir{,/usr/share/gdb/auto-load}/usr/lib/libstdc++.so.6.0.18-gdb.py
+
+  # unfortunately it is much, much easier to install the lot and clean-up the mess...
+  rm ${pkgdir}/usr/bin/{$CHOST-,}gfortran
+  # remove all DLLs
+  rm -f ${pkgdir}/usr/bin/*.dll
+
+  rm -f ${pkgdir}/usr/lib/libiberty.a
+  # rm -f ${pkgdir}/usr/lib/gcc/${CHOST}/${pkgver%%+*}/libatomic{.dll,}.a
+  rm -f ${pkgdir}/usr/lib/gcc/${CHOST}/${pkgver%%+*}/libgfortran{.dll,}.a
+  rm -f ${pkgdir}/usr/lib/gcc/${CHOST}/${pkgver%%+*}/libgfortran.spec
+  rm -r ${pkgdir}/usr/lib/gcc/$CHOST/${pkgver%%+*}/finclude
+  rm -f ${pkgdir}/usr/lib/gcc/$CHOST/${pkgver%%+*}/f951.exe
+  rm -f ${pkgdir}/usr/lib/gcc/$CHOST/${pkgver%%+*}/{libcaf_single,libgfortranbegin}.a
+  rm -f ${pkgdir}/usr/share/info/{gfortran,libgomp,libquadmath}.info
+  rm -f ${pkgdir}/usr/share/locale/{de,fr}/LC_MESSAGES/libstdc++.mo
+  rm -f ${pkgdir}/usr/share/man/man1/gfortran.1
+
+  # remove static libraries - note libstdc++.a is needed for the binutils and glibc testsuite
+  #rm ${pkgdir}/usr/lib/gcc/${CHOST}/${pkgver%%+*}/lib{gomp,quadmath}{.dll,}.a
+
+  # many packages expect this symlinks
+  ln -s gcc ${pkgdir}/usr/bin/cc
+  cp -f ${pkgdir}/usr/bin/cpp.exe ${pkgdir}/usr/lib/cpp
+
+  # POSIX conformance launcher scripts for c89 and c99
+  cat > $pkgdir/usr/bin/c89 <<"EOF"
+#!/bin/sh
+fl="-std=c89"
+for opt; do
+  case "\$opt" in
+    -ansi|-std=c89|-std=iso9899:1990) fl="";;
+    -std=*) echo "`basename \$0` called with non ANSI/ISO C option \$opt" >&2
+        exit 1;;
+  esac
+done
+exec /usr/bin/gcc $fl ${1+"$@"}
+EOF
+
+  cat > ${pkgdir}/usr/bin/c99 <<"EOF"
+#!/bin/sh
+fl="-std=c99"
+for opt; do
+  case "\$opt" in
+    -std=c99|-std=iso9899:1999) fl="";;
+    -std=*) echo "`basename \$0` called with non ISO C99 option \$opt" >&2
+        exit 1;;
+  esac
+done
+exec /usr/bin/gcc $fl ${1+"$@"}
+EOF
+
+  chmod 755 ${pkgdir}/usr/bin/c{8,9}9
+
+  # install the libstdc++ man pages
+  # install -dm755 ${pkgdir}/usr/share/man/man3
+  # install -m644 -t ${pkgdir}/usr/share/man/man3 \
+  #  ${CHOST}/libstdc++-v3/doc/doxygen/man/man3/*.3
+
+  # Install Runtime Library Exception
+  install -Dm644 ${srcdir}/${_sourcedir}/COPYING.RUNTIME \
+    ${pkgdir}/usr/share/licenses/gcc/RUNTIME.LIBRARY.EXCEPTION
+}
+
+package_gcc-fortran()
+{
+  pkgdesc="Fortran front-end for GCC"
+  depends=("gcc=$pkgver-$pkgrel")
+  options=('staticlibs' '!emptydirs' "$STRIP_OPTION" "$DEBUG_OPTION")
+
+  cd ${srcdir}/build-$(arch)
+
+  if check_option "strip" "n"; then
+    export STRIP=true
+  fi
+
+  make -j1 DESTDIR=${pkgdir} install-target-libgfortran
+  make -j1 -C $CHOST/libgomp DESTDIR=${pkgdir} install-nodist_fincludeHEADERS
+  make -j1 -C gcc DESTDIR=${pkgdir} fortran.install-{common,man,info}
+  install -Dm755 gcc/f951 ${pkgdir}/usr/lib/gcc/$CHOST/$pkgver/f951
+
+  ln -s gfortran ${pkgdir}/usr/bin/f95
+
+  rm -f ${pkgdir}/usr/lib/gcc/${CHOST}/lib/libgcc_s.dll.a
+  # remove files included in gcc-libs or gcc and unnneeded static lib
+  rm ${pkgdir}/usr/bin/*.dll
+  rm ${pkgdir}/usr/lib/gcc/$CHOST/${pkgver%%+*}/libquadmath.{dll.a,a}
+  rm ${pkgdir}/usr/lib/gcc/$CHOST/${pkgver%%+*}/{*.o,libgc*}
+  rm ${pkgdir}/usr/share/info/libquadmath.info
+  rm -r ${pkgdir}/usr/lib/gcc/$CHOST/${pkgver%%+*}/include
+  # rm ${pkgdir}/usr/lib/gcc/$CHOST/${pkgver%%+*}/libgfortran.a
+
+  # Install Runtime Library Exception
+  install -Dm644 ${srcdir}/${_sourcedir}/COPYING.RUNTIME \
+    ${pkgdir}/usr/share/licenses/gcc-fortran/RUNTIME.LIBRARY.EXCEPTION
+}
