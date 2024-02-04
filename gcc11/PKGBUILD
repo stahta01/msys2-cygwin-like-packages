@@ -7,8 +7,8 @@
 
 pkgbase=gcc11
 pkgname=('gcc' 'gcc-libs' 'gcc-fortran')
-pkgver=11.3.0
-pkgrel=4
+pkgver=11.4.0
+pkgrel=1
 pkgdesc="The GNU Compiler Collection"
 arch=('i686' 'x86_64')
 license=('GPL' 'LGPL' 'FDL' 'custom')
@@ -35,10 +35,10 @@ source=(https://ftp.gnu.org/gnu/gcc/gcc-${pkgver}/gcc-${pkgver}.tar.xz
         0011-Cygwin-define-STD_UNIX.patch
         0101-Cygwin-enable-libgccjit-not-just-for-MingW.patch
         0102-Cygwin-testsuite-fixes-for-libgccjit.patch
-        0950-11.2.0-configure-msys2.patch
+        0950-11.4.0-configure-msys2.patch
         0951-11.2.0-msys2-spec.patch
         0953-11.2.0-testsuite-msys2.patch)
-sha256sums=('b47cf2818691f5b1e21df2bb38c795fac2cfbd640ede2d0a5e1c89e338a3ac39'
+sha256sums=('3f2db222b007e8a4a23cd5ba56726ef08e8b1f1eb2055ee72c1402cea73a8dd9'
             'b6b141864e1ad82779e809608c6eed61addb09c6ff7249d1a4a5db807cc5b9be'
             'cfc44c9747980ef8a5dc87a654340ccf25cf4ebb4103e544fb4fc1e5a26e6120'
             '9475f8b4b92d5fe2af9538c2b036a5d7528b23ae07e4c684cf84be2e7f8482cf'
@@ -52,7 +52,7 @@ sha256sums=('b47cf2818691f5b1e21df2bb38c795fac2cfbd640ede2d0a5e1c89e338a3ac39'
             '2269e9c2438e21b082ca0d136519a08a0853b896dd559a3946bd9b9e6b94fc5e'
             'cfcd07c86ac35aaa41c6f60e2089a8ee9552f9e705de3aba3c7cfa7223f66cb0'
             '84efaa23be80c0ccf5e0f5da0a34b17c26948bfb7c2cc89b17b455df6df5c1e4'
-            '2d294f4467b5afa1c3f250243ca64953d237c9826414600b26894b0f1d5aef5c'
+            '4cf456b1476ed1770e22728acd118a1e34a794fc449ff87b030ac9787bbef02f'
             'c949d1a10231c5f9cecf3f09319afb290f66fe012e545fd70cd7bdfadddfcf56'
             '593f41e1f1265171ecc5377226dc76a3a4d92d7c3cc4f0b0afe6c4a6578cc5e3')
 
@@ -94,7 +94,6 @@ prepare() {
     0003-Cygwin-handle-dllimport-properly-in-medium-model-V2.patch \
     0004-Cygwin-MinGW-skip-test.patch \
     0005-Cygwin-define-RTS_CONTROL_ENABLE-and-DTR_CONTROL_ENA.patch \
-    0006-Cygwin-fix-some-implicit-declaration-warnings-and-re.patch \
     0007-Cygwin-__cxa-atexit.patch \
     0008-Cygwin-libgomp-soname.patch \
     0009-Cygwin-g-time.patch \
@@ -105,7 +104,7 @@ prepare() {
 
   # MSYS2 Patches
   apply_patch_with_msg \
-    0950-11.2.0-configure-msys2.patch \
+    0950-11.4.0-configure-msys2.patch \
     0951-11.2.0-msys2-spec.patch \
     0953-11.2.0-testsuite-msys2.patch
 
