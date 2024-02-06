@@ -40,7 +40,7 @@ source=(${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#commit=$_git_b
         0950-11.4.0-configure-msys2.patch
         0951-11.2.0-msys2-spec.patch
         0953-11.2.0-testsuite-msys2.patch)
-sha256sums=('3f2db222b007e8a4a23cd5ba56726ef08e8b1f1eb2055ee72c1402cea73a8dd9'
+sha256sums=('SKIP'
             'b6b141864e1ad82779e809608c6eed61addb09c6ff7249d1a4a5db807cc5b9be'
             'cfc44c9747980ef8a5dc87a654340ccf25cf4ebb4103e544fb4fc1e5a26e6120'
             '9475f8b4b92d5fe2af9538c2b036a5d7528b23ae07e4c684cf84be2e7f8482cf'
@@ -54,7 +54,7 @@ sha256sums=('3f2db222b007e8a4a23cd5ba56726ef08e8b1f1eb2055ee72c1402cea73a8dd9'
             '2269e9c2438e21b082ca0d136519a08a0853b896dd559a3946bd9b9e6b94fc5e'
             'cfcd07c86ac35aaa41c6f60e2089a8ee9552f9e705de3aba3c7cfa7223f66cb0'
             '84efaa23be80c0ccf5e0f5da0a34b17c26948bfb7c2cc89b17b455df6df5c1e4'
-            '4cf456b1476ed1770e22728acd118a1e34a794fc449ff87b030ac9787bbef02f'
+            'bbc2f52cb21093e33c10ad9ad17afd1830955b9d729342da35c27c3590852908'
             'c949d1a10231c5f9cecf3f09319afb290f66fe012e545fd70cd7bdfadddfcf56'
             '593f41e1f1265171ecc5377226dc76a3a4d92d7c3cc4f0b0afe6c4a6578cc5e3')
 
