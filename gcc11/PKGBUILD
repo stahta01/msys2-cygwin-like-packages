@@ -9,6 +9,8 @@ pkgbase=gcc11
 pkgname=('gcc' 'gcc-libs' 'gcc-fortran')
 pkgver=11.4.0
 pkgrel=1
+_sourcedir=${_realname}-git
+_git_base_commit='e6a94f135c13271bcfe9198c841aeeffc64ee78a'
 pkgdesc="The GNU Compiler Collection"
 arch=('i686' 'x86_64')
 license=('GPL' 'LGPL' 'FDL' 'custom')
@@ -21,7 +23,7 @@ STRIP_OPTION="strip"
 #DEBUG_OPTION="debug"
 DEBUG_OPTION="!debug"
 options=('!emptydirs' "$STRIP_OPTION" "$DEBUG_OPTION")
-source=(https://ftp.gnu.org/gnu/gcc/gcc-${pkgver}/gcc-${pkgver}.tar.xz
+source=(${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#commit=$_git_base_commit"
         0001-Cygwin-use-SysV-ABI-on-x86_64.patch
         0002-Cygwin-add-dummy-pthread-tsaware-and-large-address-a.patch
         0003-Cygwin-handle-dllimport-properly-in-medium-model-V2.patch
@@ -75,8 +77,32 @@ del_file_exists() {
 }
 # =========================================== #
 
+pkgver() {
+  cd ${srcdir}/${_sourcedir}
+  local _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
+  local _gcc_date=$(head -n 34 gcc/DATESTAMP | sed -e 's/.* //' | tr -d '"\n')
+  printf "%s+d%s.r%s.c%s.g%s" "$_gcc_version" "$_gcc_date" \
+    $(git rev-list --count $(git log -1 --format=%H -- gcc/DATESTAMP)..${_git_base_commit}) \
+    $(git rev-list --count ${_git_base_commit}..HEAD) \
+    $(git rev-parse --short=12 ${_git_base_commit})
+}
+
 prepare() {
-  cd ${srcdir}/gcc-${pkgver}
+  cd ${srcdir}/${_sourcedir}
+
+  GIT_AM="git am --committer-date-is-author-date"
+
+  msg "Before git reset"
+  time git reset --hard
+  msg "Before git restore"
+  time git restore .
+  msg "Before git clean"
+  time git clean -fdx
+  msg "Before git am abort"
+  time git am --abort || true
+
+  del_file_exists intl/canonicalize.c intl/canonicalize.h \
+    intl/relocatex.c intl/relocatex.h gcc/config/i386/mingw32.h.sedbak
 
   # Remove files created by patches
   rm -f config/mt-cygwin \
