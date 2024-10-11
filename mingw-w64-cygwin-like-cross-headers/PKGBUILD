@@ -1,0 +1,102 @@
+# Contributor: Alexey Pavlov <alexpux@gmail.com>
+# Contributor: Martell Malone <martellmalone@gmail.com>
+
+_realname=headers
+_cygwinlike_suff=mingw-w64-cygwin-like-cross
+pkgbase="${_cygwinlike_suff}-${_realname}"
+_targetpkgs=("${_cygwinlike_suff}-ucrt64-${_realname}" "${_cygwinlike_suff}-mingw32-${_realname}" "${_cygwinlike_suff}-mingw64-${_realname}")
+pkgname=("${_cygwinlike_suff}-${_realname}" "${_targetpkgs[@]}")
+pkgver=12.0.0.r250.gc6bf4bdf6
+pkgrel=1
+pkgdesc="MinGW-w64 headers for cross-compiler"
+arch=('i686' 'x86_64')
+url="https://www.mingw-w64.org/"
+msys2_repository_url="https://sourceforge.net/p/mingw-w64/mingw-w64/ci/master/tree/mingw-w64-headers"
+license=('custom')
+groups=("${_cygwinlike_suff}-toolchain" "${_cygwinlike_suff}")
+makedepends=('git' 'autotools')
+options=('!strip' '!libtool' '!emptydirs' '!buildflags')
+_commit='c6bf4bdf6572bfd530833ebd7e2dccb1133b602d'
+source=("mingw-w64"::"git+https://git.code.sf.net/p/mingw-w64/mingw-w64#commit=$_commit")
+sha256sums=('3aafb8dadd7285254b9f6862bc359e99485c578d5bfb7ad9cad7d958547db291')
+msys2_references=(
+  'archlinux: mingw-w64-headers'
+  'cpe: cpe:/a:mingw-w64:mingw-w64'
+)
+
+pkgver() {
+  cd "${srcdir}/mingw-w64"
+
+  git describe --long ${_commit} | sed 's/\([^-]*-g\)/r\1/;s/-/./g;s/^v//g'
+}
+
+_build() {
+  _target=$1
+  unset CC CXX
+
+  if [[ "${_target}" == "x86_64-w64-mingw32ucrt" ]]; then
+    _default_msvcrt=ucrt
+    _default_win32_winnt=0x603  # Windows 8.1
+  elif [[ "${_target}" == "aarch64-w64-mingw32" ]]; then
+    _default_msvcrt=ucrt
+    _default_win32_winnt=0xA00  # Windows 10
+  else
+    _default_msvcrt=msvcrt
+    _default_win32_winnt=0x601  # Windows 7
+  fi
+
+  msg "Configuring ${_target} headers"
+  mkdir -p ${srcdir}/headers-${_target} && cd ${srcdir}/headers-${_target}
+  ${srcdir}/mingw-w64/mingw-w64-headers/configure \
+  --build=${CHOST} \
+  --host=${_target} \
+  --prefix=${MSYSTEM_PREFIX}/${_target}/sys-root/mingw \
+  --enable-sdk=all \
+  --with-default-win32-winnt=${_default_win32_winnt} \
+  --with-default-msvcrt=${_default_msvcrt}
+}
+
+_package() {
+  _target=$1
+  msg "Installing ${_target} headers"
+  cd ${srcdir}/headers-${_target}
+  make DESTDIR=${pkgdir} install
+
+  rm ${pkgdir}${MSYSTEM_PREFIX}/${_target}/sys-root/mingw/include/pthread_signal.h
+  rm ${pkgdir}${MSYSTEM_PREFIX}/${_target}/sys-root/mingw/include/pthread_time.h
+  rm ${pkgdir}${MSYSTEM_PREFIX}/${_target}/sys-root/mingw/include/pthread_unistd.h
+}
+
+build() {
+  for _pkg in "${_targetpkgs[@]}"; do
+    case "$_pkg" in
+      "${_cygwinlike_suff}-ucrt64-${_realname}") _build "x86_64-w64-mingw32ucrt" ;;
+      "${_cygwinlike_suff}-mingw32-${_realname}") _build "i686-w64-mingw32" ;;
+      "${_cygwinlike_suff}-mingw64-${_realname}") _build "x86_64-w64-mingw32" ;;
+      "${_cygwinlike_suff}-mingwarm64-${_realname}") _build "aarch64-w64-mingw32" ;;
+    esac
+  done
+}
+
+package_mingw-w64-cygwin-like-cross-headers() {
+  pkgdesc+=" (meta package, for backward compatibility)"
+  provides=("${_cygwinlike_suff}-${_realname}-git")
+  conflicts=("${_cygwinlike_suff}-${_realname}-git")
+  replaces=("${_cygwinlike_suff}-${_realname}-git")
+  depends=("${_targetpkgs[@]}")
+}
+
+package_mingw-w64-cygwin-like-cross-ucrt64-headers() {
+  conflicts=("${_cygwinlike_suff}-${_realname}<=12.0.0.r0.g819a6ec2e-1")
+  _package "x86_64-w64-mingw32ucrt"
+}
+
+package_mingw-w64-cygwin-like-cross-mingw32-headers() {
+  conflicts=("${_cygwinlike_suff}-${_realname}<=12.0.0.r0.g819a6ec2e-1")
+  _package "i686-w64-mingw32"
+}
+
+package_mingw-w64-cygwin-like-cross-mingw64-headers() {
+  conflicts=("${_cygwinlike_suff}-${_realname}<=12.0.0.r0.g819a6ec2e-1")
+  _package "x86_64-w64-mingw32"
+}
