@@ -1,0 +1,99 @@
+# Contributor: Alexey Pavlov <alexpux@gmail.com>
+
+_realname=winpthreads
+_cygwinlike_suff=mingw-w64-cygwin-like-cross
+pkgbase="${_cygwinlike_suff}-${_realname}"
+_targetpkgs=("${_cygwinlike_suff}-ucrt64-${_realname}" "${_cygwinlike_suff}-mingw32-${_realname}" "${_cygwinlike_suff}-mingw64-${_realname}")
+pkgname=("${_cygwinlike_suff}-${_realname}" "${_targetpkgs[@]}")
+pkgver=12.0.0.r250.gc6bf4bdf6
+pkgrel=1
+pkgdesc="MinGW-w64 winpthreads library for cross-compiler"
+arch=('i686' 'x86_64')
+url="https://www.mingw-w64.org/"
+msys2_repository_url="https://sourceforge.net/p/mingw-w64/mingw-w64/ci/master/tree/mingw-w64-libraries/winpthreads"
+license=('custom')
+groups=("${_cygwinlike_suff}-toolchain" "${_cygwinlike_suff}")
+makedepends=("git" "${_cygwinlike_suff}-gcc" "${_cygwinlike_suff}-binutils" "${_cygwinlike_suff}-crt" "${_cygwinlike_suff}-headers" 'autotools')
+optdepends=()
+backup=()
+options=('!strip' '!buildflags' 'staticlibs' '!emptydirs' '!buildflags')
+_commit='c6bf4bdf6572bfd530833ebd7e2dccb1133b602d'
+source=("mingw-w64"::"git+https://git.code.sf.net/p/mingw-w64/mingw-w64#commit=$_commit"
+        0001-Define-__-de-register_frame_info-in-fake-libgcc_s.patch)
+sha256sums=('3aafb8dadd7285254b9f6862bc359e99485c578d5bfb7ad9cad7d958547db291'
+            '2e779bcc60a1422b23e0cfdb5c0f6851f2382592bb4675d08a6bdef78d5e5c10')
+msys2_references=(
+  'archlinux: mingw-w64-winpthreads'
+  'cpe: cpe:/a:mingw-w64:mingw-w64'
+)
+
+pkgver() {
+  cd "$srcdir/mingw-w64"
+
+  git describe --long ${_commit} | sed 's/\([^-]*-g\)/r\1/;s/-/./g;s/^v//g'
+}
+
+prepare() {
+  cd "$srcdir/mingw-w64"
+  git apply "${srcdir}"/0001-Define-__-de-register_frame_info-in-fake-libgcc_s.patch
+  cd "${srcdir}"/mingw-w64/mingw-w64-libraries/winpthreads
+  autoreconf -vfi
+}
+
+_build() {
+  _target=$1
+  mkdir -p ${srcdir}/winpthreads-build-${_target} && cd ${srcdir}/winpthreads-build-${_target}
+  unset CC
+  ${srcdir}/mingw-w64/mingw-w64-libraries/winpthreads/configure \
+    --prefix=${MSYSTEM_PREFIX}/${_target}/sys-root/mingw \
+    --build=${CHOST} \
+    --host=${_target} \
+    --enable-static \
+    --enable-shared
+  make
+}
+
+_package() {
+  _target=$1
+  cd ${srcdir}/winpthreads-build-${_target}
+  make DESTDIR=${pkgdir} install
+}
+
+build() {
+  for _pkg in "${_targetpkgs[@]}"; do
+    case "$_pkg" in
+      "${_cygwinlike_suff}-ucrt64-${_realname}") _build "x86_64-w64-mingw32ucrt" ;;
+      "${_cygwinlike_suff}-mingw32-${_realname}") _build "i686-w64-mingw32" ;;
+      "${_cygwinlike_suff}-mingw64-${_realname}") _build "x86_64-w64-mingw32" ;;
+    esac
+  done
+}
+
+package_mingw-w64-cygwin-like-cross-winpthreads() {
+  pkgdesc+=" (meta package, for backward compatibility)"
+  depends=("${_targetpkgs[@]}")
+  provides=("${_cygwinlike_suff}-${_realname}-git")
+  conflicts=("${_cygwinlike_suff}-${_realname}-git")
+  replaces=("${_cygwinlike_suff}-${_realname}-git")
+}
+
+package_mingw-w64-cygwin-like-cross-ucrt64-winpthreads() {
+  depends=("${_cygwinlike_suff}-ucrt64-crt")
+  conflicts=("${_cygwinlike_suff}-${_realname}<=12.0.0.r0.g819a6ec2e-1")
+
+  _package "x86_64-w64-mingw32ucrt"
+}
+
+package_mingw-w64-cygwin-like-cross-mingw32-winpthreads() {
+  depends=("${_cygwinlike_suff}-mingw32-crt")
+  conflicts=("${_cygwinlike_suff}-${_realname}<=12.0.0.r0.g819a6ec2e-1")
+
+  _package "i686-w64-mingw32"
+}
+
+package_mingw-w64-cygwin-like-cross-mingw64-winpthreads() {
+  depends=("${_cygwinlike_suff}-mingw64-crt")
+  conflicts=("${_cygwinlike_suff}-${_realname}<=12.0.0.r0.g819a6ec2e-1")
+
+  _package "x86_64-w64-mingw32"
+}
