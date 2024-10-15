@@ -1,0 +1,264 @@
+# Maintainer: Alexey Pavlov <alexpux@gmail.com>
+# Contributor: Ray Donnelly <mingw.android@gmail.com>
+
+pkgbase=msys2-runtime
+pkgname=('msys2-runtime' 'msys2-runtime-devel')
+pkgver=3.5.4
+pkgrel=2
+pkgdesc="Cygwin POSIX emulation engine"
+arch=('x86_64')
+url="https://www.cygwin.com/"
+license=('GPL')
+msys2_references=(
+  'cygwin: cygwin'
+  "cpe: cpe:/a:cygwin:cygwin"
+)
+makedepends=('cocom'
+             'git'
+             'perl'
+             'gcc'
+             'mingw-w64-cygwin-like-cross-crt'
+             'mingw-w64-cygwin-like-cross-gcc'
+             'mingw-w64-cygwin-like-cross-zlib'
+             'zlib-devel'
+             'gettext-devel'
+             'libiconv-devel'
+             'autotools'
+             'xmlto'
+             'docbook-xsl')
+# re zipman: https://github.com/msys2/MSYS2-packages/pull/2687#issuecomment-965714874
+options=('!zipman')
+source=('msys2-runtime'::git://sourceware.org/git/newlib-cygwin.git#tag=cygwin-${pkgver}
+        0001-Add-MSYS2-triplet.patch
+        0002-Fix-msys-library-name-in-import-libraries.patch
+        0003-Rename-dll-from-cygwin-to-msys.patch
+        0004-Add-functionality-for-converting-UNIX-paths-in-argum.patch
+        0005-Add-functionality-for-changing-OS-name-via-MSYSTEM-e.patch
+        0006-Move-root-to-usr.-Change-sorting-mount-points.-By-de.patch
+        0007-Instead-of-creating-Cygwin-symlinks-use-deep-copy-by.patch
+        0008-Automatically-rewrite-TERM-msys-to-TERM-cygwin.patch
+        0009-Do-not-convert-environment-for-strace.patch
+        0010-strace.cc-Don-t-set-MSYS-noglob.patch
+        0011-Add-debugging-for-strace-make_command_line.patch
+        0012-strace-quiet-be-really-quiet.patch
+        0013-path_conv-special-case-root-directory-to-have-traili.patch
+        0014-When-converting-to-a-Unix-path-avoid-double-trailing.patch
+        0015-msys2_path_conv-pass-PC_NOFULL-to-path_conv.patch
+        0016-path-conversion-Introduce-ability-to-switch-off-conv.patch
+        0017-dcrt0.cc-Untangle-allow_glob-from-winshell.patch
+        0018-dcrt0.cc-globify-Don-t-quote-literal-strings-differe.patch
+        0019-Add-debugging-for-build_argv.patch
+        0020-environ.cc-New-facility-environment-variable-MSYS2_E.patch
+        0021-Fix-native-symbolic-link-spawn-passing-wrong-arg0.patch
+        0022-Introduce-the-enable_pcon-value-for-MSYS.patch
+        0023-popen-call-usr-bin-sh-instead-of-bin-sh.patch
+        0024-Expose-full-command-lines-to-other-Win32-processes-b.patch
+        0025-Add-a-helper-to-obtain-a-function-s-address-in-kerne.patch
+        0026-Emulate-GenerateConsoleCtrlEvent-upon-Ctrl-C.patch
+        0027-kill-kill-Win32-processes-more-gently.patch
+        0028-Cygwin-make-option-for-native-inner-link-handling.patch
+        0029-docs-skip-building-texinfo-and-PDF-files.patch
+        0030-install-libs-depend-on-the-toollibs.patch
+        0031-POSIX-ify-the-SHELL-variable.patch
+        0032-Handle-ORIGINAL_PATH-just-like-PATH.patch
+        0033-uname-allow-setting-the-system-name-to-CYGWIN.patch
+        0034-Pass-environment-variables-with-empty-values.patch
+        0035-Optionally-disallow-empty-environment-values-again.patch
+        0036-build_env-respect-the-MSYS-environment-variable.patch
+        0037-Revert-Cygwin-Enable-dynamicbase-on-the-Cygwin-DLL-b.patch
+        0038-Avoid-sharing-cygheaps-across-Cygwin-versions.patch
+        0039-uname-report-msys2-runtime-commit-hash-too.patch
+        0040-Cygwin-pipe-Fix-a-regression-that-raw_write-slows-do.patch)
+sha256sums=('b8dce32fd9746506752d90ac3f30454fe1689100b08c41442016aaf244cc8584'
+            '9f9e1b6b05cbc9a715fe9443740b25171e9c1a276a058e6ba7e4f6eada6872c8'
+            'e5b2095e543a5d702cfce6da26cd17a78f40e17620315b1bcc434b94a007ae9b'
+            'f13b15dc14aa6ee1dd628a2487564bb484e74ff2f3e4059b9d9d64446a327db1'
+            '155986f35dfb072fe85993ef184ca029542c1706cf2b29c6483444bd31b13be1'
+            '87f23592b90efc996a4afa4cf4b74aa6828d62393550b8dca93280880cace5b4'
+            'd312eeec44f03b1be90e88fa5172f0c39412b3e89b5886799a956494bc91d9a2'
+            '83c7d19449c1e39d7d00ae1208ec3ad5c9807b7bdb0471e415f18ade67d5c39e'
+            'd77ae7eead224a20e4bf68013e049ca07ecbca63a18d7318d1061162978f3d6b'
+            'bae2d10f60e25dca74cd435e43fdc6bf9be47103d7d650c87a2fd6272954329a'
+            '9db10ecf658cd5f443f61d06e7649ffcd677d7be31b7e6fdf6dfa6268384834f'
+            '934ccc478f7d8e83b6da6f3b7436e613e169500f40905b5ec11bebc0729135c8'
+            '17c37645cf7cf4c3518b9135c498379de10820b686f99ffa2203284b024e6974'
+            '253bc53d1414e5096de6fce89796b89907fa33a779ea95c889bf9b9ce3e17bde'
+            'fde2bcc5ca961c7e22a38c85365e46584630d2886966c8c386846572db30146a'
+            '3568ad0e60a94da91716d3a300a2aded0f15cec964635ee7bec0371af0d7c44c'
+            '571e5ed60721f42e888b46e02fc503283a7813ac4e957ce962d36970b3f7eca0'
+            '5a1c306458090293d42ae9ffae7b1d75485b5365e31f5f62a0c548e1c411ccac'
+            '06367d83f7817f5ca9c494f688f224873fd8c56f90ea3bfb2f500c8649aa6150'
+            'ea67073b27f8f78de70a4e1ae4340e2c787115a8670d8140e36df2685e7c35ee'
+            '699f223b03b36332aebea12984c3770235b66df2902ab3ea177ff1066fd168e3'
+            'b00affd0e6df8b9697b1e13695cff3c6db98b484de7038abad6f533580db7e9a'
+            '158a53bcbdd2f044c197d015bf4fa9b05b2300ea2435794a7527adff2bc277de'
+            '902c4998dadba3b5a17f031afb9db0fe60feb65a537981921a04734c60bc9910'
+            '3bceeac2fe9ce7d88324cdc0f9bebe7de120e1d5b909571e606c619bce277689'
+            'c546b87225d433f6b312abc4f571a10bd4efbd4138fb11a5477dfe5e6df213c0'
+            'b21933657b87ff773b633c8dabb576d55c6aa9f8f42c7ab784f980de767c220d'
+            '9a9339b069a1c3f45fdd70805bae788e95f0d4fd2fea0ae8f37ae058b1ecfdde'
+            '785bf87f823025a842466647bdfbd83bade952c007d06f7e68176a186a983ad8'
+            'd729c1886bd2249e565ccb8b64f0c31fb71d605715320a76b56aa032e9fa5575'
+            '471c1a68767b05dafa5e12b23efdbd85123813cfcfef708be4bb6d734ae6b51c'
+            '33ec577def8ddc9180da824828acc8e201c08d87181f81685c26e0fd163d126e'
+            '61a411b4747c36fd20d2365eb3d45f53a8eed50b88a22a337e1ab73f8ee54928'
+            '14a7f6afdc232acaffbc8315543a973118ea205f559e04c6c17de75e9e12d845'
+            '0c2290d16f120bd64ef2e9824e5ba3af38c59d74008fd4c2028f42ed3bcbb058'
+            'e14b90eddb75b56fcf84b8d37044d57eb45c109f08d103ebac160f173a763192'
+            '5990fbc34e4ac09229383e9a0f3326513a5a9482ebcca929302af0707d96a321'
+            'f74cb189aafc9f8bf04cdad02531d9eca524c2dd12672e4e118bfdbb48926110'
+            '344f108bc9e9ad597e07f1cc8e834e3d1a9fbd9972a1554c1c5de0fce0ae8506'
+            'f93578a1150d724a60a7e8eb8491342aeb13f809e2ddb5193d8d126465f665cb'
+            '41e896036ea67c5d12a712554f4d53949c2dc809bb3545ac6be1fe619848f8af')
+
+# Helper macros to help make tasks easier #
+apply_patch_with_msg() {
+  for _patch in "$@"
+  do
+    msg2 "Applying $_patch"
+    patch -Nbp1 -i "${srcdir}/${_patch}"
+  done
+}
+
+apply_git_am_with_msg() {
+  for _patch in "$@"
+  do
+    msg2 "Applying $_patch"
+    git apply "${srcdir}/${_patch}"
+  done
+}
+
+del_file_exists() {
+  for _fname in "$@"
+  do
+    if [ -f $_fname ]; then
+      rm -rf $_fname
+    fi
+  done
+}
+# =========================================== #
+
+prepare() {
+  cd "${srcdir}"/msys2-runtime
+  if test true != "$(git config core.symlinks)"
+  then
+    git config core.symlinks true &&
+    /usr/bin/git reset --hard
+  fi
+  del_file_exists winsup/cygwin/msys2_path_conv.cc \
+    winsup/cygwin/msys2_path_conv.h
+ apply_git_am_with_msg 0001-Add-MSYS2-triplet.patch \
+  0002-Fix-msys-library-name-in-import-libraries.patch \
+  0003-Rename-dll-from-cygwin-to-msys.patch \
+  0004-Add-functionality-for-converting-UNIX-paths-in-argum.patch \
+  0005-Add-functionality-for-changing-OS-name-via-MSYSTEM-e.patch \
+  0006-Move-root-to-usr.-Change-sorting-mount-points.-By-de.patch \
+  0007-Instead-of-creating-Cygwin-symlinks-use-deep-copy-by.patch \
+  0008-Automatically-rewrite-TERM-msys-to-TERM-cygwin.patch \
+  0009-Do-not-convert-environment-for-strace.patch \
+  0010-strace.cc-Don-t-set-MSYS-noglob.patch \
+  0011-Add-debugging-for-strace-make_command_line.patch \
+  0012-strace-quiet-be-really-quiet.patch \
+  0013-path_conv-special-case-root-directory-to-have-traili.patch \
+  0014-When-converting-to-a-Unix-path-avoid-double-trailing.patch \
+  0015-msys2_path_conv-pass-PC_NOFULL-to-path_conv.patch \
+  0016-path-conversion-Introduce-ability-to-switch-off-conv.patch \
+  0017-dcrt0.cc-Untangle-allow_glob-from-winshell.patch \
+  0018-dcrt0.cc-globify-Don-t-quote-literal-strings-differe.patch \
+  0019-Add-debugging-for-build_argv.patch \
+  0020-environ.cc-New-facility-environment-variable-MSYS2_E.patch \
+  0021-Fix-native-symbolic-link-spawn-passing-wrong-arg0.patch \
+  0022-Introduce-the-enable_pcon-value-for-MSYS.patch \
+  0023-popen-call-usr-bin-sh-instead-of-bin-sh.patch \
+  0024-Expose-full-command-lines-to-other-Win32-processes-b.patch \
+  0025-Add-a-helper-to-obtain-a-function-s-address-in-kerne.patch \
+  0026-Emulate-GenerateConsoleCtrlEvent-upon-Ctrl-C.patch \
+  0027-kill-kill-Win32-processes-more-gently.patch \
+  0028-Cygwin-make-option-for-native-inner-link-handling.patch \
+  0029-docs-skip-building-texinfo-and-PDF-files.patch \
+  0030-install-libs-depend-on-the-toollibs.patch \
+  0031-POSIX-ify-the-SHELL-variable.patch \
+  0032-Handle-ORIGINAL_PATH-just-like-PATH.patch \
+  0033-uname-allow-setting-the-system-name-to-CYGWIN.patch \
+  0034-Pass-environment-variables-with-empty-values.patch \
+  0035-Optionally-disallow-empty-environment-values-again.patch \
+  0036-build_env-respect-the-MSYS-environment-variable.patch \
+  0037-Revert-Cygwin-Enable-dynamicbase-on-the-Cygwin-DLL-b.patch \
+  0038-Avoid-sharing-cygheaps-across-Cygwin-versions.patch \
+  0039-uname-report-msys2-runtime-commit-hash-too.patch \
+  0040-Cygwin-pipe-Fix-a-regression-that-raw_write-slows-do.patch
+}
+
+build() {
+  [[ -d "${srcdir}"/build-${CHOST} ]] && rm -rf "${srcdir}"/build-${CHOST}
+  mkdir -p "${srcdir}"/build-${CHOST} && cd "${srcdir}"/build-${CHOST}
+
+  # Gives more verbose compile output when debugging.
+  local -a extra_config
+  if check_option "debug" "y"; then
+    export CCWRAP_VERBOSE=1
+    OPTIM="-O0"
+    extra_config+=(--enable-debugging)
+  else
+    OPTIM="-O2"
+  fi
+
+  CFLAGS="$OPTIM -pipe -ggdb"
+  CXXFLAGS="$OPTIM -pipe -ggdb -Wno-error=stringop-truncation -Wno-error=array-bounds -Wno-error=overloaded-virtual -Wno-narrowing -Wno-use-after-free -Wno-error=maybe-uninitialized"
+
+  # otherwise it asks git which appends "-dirty" because of our uncommited patches
+  CFLAGS+=" -DCYGPORT_RELEASE_INFO=${pkgver}"
+
+  (cd "${srcdir}/msys2-runtime/winsup" && ./autogen.sh)
+
+  "${srcdir}"/msys2-runtime/configure \
+    --prefix=/usr \
+    --build=${CHOST} \
+    --sysconfdir=/etc \
+    "${extra_config[@]}"
+  LC_ALL=C make
+  LC_ALL=C make -j1 DESTDIR="${srcdir}"/dest install
+
+  rm -rf "${srcdir}"/dest/etc
+
+  # split debug info from msys-2.0.dll
+  cd "${srcdir}"/dest
+  objcopy --add-gnu-debuglink=/dev/null --only-keep-debug usr/bin/msys-2.0.dll usr/bin/msys-2.0.dbg
+  objcopy -g --add-gnu-debuglink=usr/bin/msys-2.0.dbg usr/bin/msys-2.0.dll usr/bin/msys-2.0.dll.new
+  mv -f usr/bin/msys-2.0.dll.new usr/bin/msys-2.0.dll
+}
+
+package_msys2-runtime() {
+  pkgdesc="Posix emulation engine for Windows"
+  conflicts=('catgets' 'libcatgets' 'msys2-runtime-3.4' 'msys2-runtime-3.5')
+  replaces=('catgets' 'libcatgets' 'msys2-runtime-3.5')
+
+  mkdir -p "${pkgdir}"/usr
+  cp -rf "${srcdir}"/dest/usr/bin "${pkgdir}"/usr/
+  cp -rf "${srcdir}"/dest/usr/libexec "${pkgdir}"/usr/
+  rm -f "${pkgdir}"/usr/bin/msys-2.0.dbg
+  rm -f "${pkgdir}"/usr/bin/cyglsa-config
+  rm -f "${pkgdir}"/usr/bin/cyglsa.dll
+  rm -f "${pkgdir}"/usr/bin/cyglsa64.dll
+  rm -f "${pkgdir}"/usr/bin/cygserver-config
+  cp -rf "${srcdir}"/dest/usr/share "${pkgdir}"/usr/
+}
+
+package_msys2-runtime-devel() {
+  pkgdesc="MSYS2 headers and libraries"
+  depends=("msys2-runtime=${pkgver}")
+  conflicts=('libcatgets-devel' 'msys2-runtime-3.4-devel' 'msys2-runtime-3.5-devel')
+  replaces=('libcatgets-devel' 'msys2-runtime-3.5-devel')
+  # strip breaks the split debug info.  msys2/msys2-pacman#52
+  options=('!strip')
+
+  mkdir -p "${pkgdir}"/usr/bin
+  cp -f "${srcdir}"/dest/usr/bin/msys-2.0.dbg "${pkgdir}"/usr/bin/
+  cp -rLf "${srcdir}"/dest/usr/${CHOST}/include "${pkgdir}"/usr/
+  rm -f "${pkgdir}"/usr/include/iconv.h
+  rm -f "${pkgdir}"/usr/include/unctrl.h
+  # provided by libtirpc
+  rm -fr "${pkgdir}"/usr/include/rpc/
+
+  cp -rLf "${srcdir}"/dest/usr/${CHOST}/lib "${pkgdir}"/usr/
+}
